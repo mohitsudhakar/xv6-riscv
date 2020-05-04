@@ -9,6 +9,11 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+extern char     DEBUG_start[1024];
+extern char     DEBUG_exit[1024];
+extern char     DEBUG_open[1024];
+int             mohit(char*, int);
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

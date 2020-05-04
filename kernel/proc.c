@@ -6,6 +6,10 @@
 #include "proc.h"
 #include "defs.h"
 
+char DEBUG_start[1024];
+char DEBUG_exit[1024];
+char DEBUG_open[1024];
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -19,6 +23,43 @@ extern void forkret(void);
 static void wakeup1(struct proc *chan);
 
 extern char trampoline[]; // trampoline.S
+
+void printdebug(int hook)
+{
+  int MAXLEN = 1024;
+  char curproc_regex[] = "{curproc}";
+  char numproc_regex[] = "{numprocs}";
+
+  char curproc_str[2];
+  getCurrentProcessStr(curproc_str);
+
+  char numproc_str[2];
+  getNumProcessStr(numproc_str);
+
+  char temp[MAXLEN];
+  char debug[MAXLEN];
+  switch(hook) {
+    case 1:
+      replaceWord(DEBUG_start, curproc_regex, curproc_str, temp);
+      replaceWord(temp, numproc_regex, numproc_str, debug);
+      printf("%s\n", debug);
+      break;
+    case 2:
+      replaceWord(DEBUG_exit, curproc_regex, curproc_str, temp);
+      replaceWord(temp, numproc_regex, numproc_str, debug);
+      printf("%s\n", debug);
+      break;
+    case 3:
+      replaceWord(DEBUG_open, curproc_regex, curproc_str, temp);
+      replaceWord(temp, numproc_regex, numproc_str, debug);
+      printf("%s\n", debug);
+      break;
+    default:
+      printf("Error: Wrong hook (1/2/3)\n");
+      exit(0);
+    }
+}
+
 
 void
 procinit(void)
@@ -317,6 +358,9 @@ reparent(struct proc *p)
 void
 exit(int status)
 {
+  // call debug statement for exit
+  printdebug(2);
+
   struct proc *p = myproc();
 
   if(p == initproc)
@@ -457,6 +501,8 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+//        printdebug(1);
+
         swtch(&c->scheduler, &p->context);
 
         // Process is done running for now.
@@ -512,6 +558,9 @@ void
 forkret(void)
 {
   static int first = 1;
+
+  // print debug statement on process start (first scheduling)
+  printdebug(1);
 
   // Still holding p->lock from scheduler.
   release(&myproc()->lock);
@@ -669,5 +718,112 @@ procdump(void)
       state = "???";
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
+  }
+}
+
+
+// ------------------------------- Utility functions -------------------------------
+
+char *strstr(char *str, char *substr)
+{
+    int len = strlen(substr);
+    char *ref = substr;
+    while(*str && *ref)
+    {
+        if (*str++ == *ref) ref++;
+        if(!*ref) return (str - len);
+        if (len == (ref - substr)) ref = substr;
+    }
+    return 0;
+}
+
+void replaceWord(const char *s, const char *oldW, const char *newW, char *result)
+{
+	int i, cnt = 0;
+	int newWlen = strlen(newW);
+	int oldWlen = strlen(oldW);
+	// Counting the number of times old word occur in the string
+	for (i = 0; s[i] != '\0'; i++)
+	{
+		if (strstr(&s[i], oldW) == &s[i])
+		{
+			cnt++;
+			// Jumping to index after the old word.
+			i += oldWlen - 1;
+		}
+	}
+	// Making new string of enough length
+	memset(result, 0, (i + cnt * (newWlen - oldWlen) + 1)*sizeof(char));
+	i = 0;
+	while (*s)
+	{
+		// compare the substring with the result
+		if (strstr(s, oldW) == s)
+		{
+			strncpy(&result[i], newW, oldWlen);
+			i += newWlen;
+			s += oldWlen;
+		}
+		else
+			result[i++] = *s++;
+	}
+	result[i] = '\0';
+}
+
+// convert current process id (int) to char*
+void getCurrentProcessStr(char* curproc_str) {
+  int curproc = (int)myproc()->pid;
+//  char curproc_str[2];
+  memset(curproc_str, 0, sizeof(curproc_str));
+  // generalize this piece of code
+  if(curproc < 10)
+  {
+    curproc_str[0] = curproc + 48;
+  }
+  else if(curproc < 100)
+  {
+    int units = curproc % 10;
+    int tens = curproc/10 % 10;
+    curproc_str[1] = units + 48;
+    curproc_str[0] = tens + 48;
+  }
+  else
+  {
+      int units = curproc % 10;
+      int tens = curproc/10 % 10;
+      int hund = curproc/100 % 10;
+      curproc_str[2] = units + 48;
+      curproc_str[1] = tens + 48;
+      curproc_str[0] = hund + 48;
+  }
+}
+
+int getRunningProcs(void)
+{
+  struct proc *p;
+  int count = 0;
+  for(p = proc; p < &proc[NPROC]; p++) {
+    if(p->state == RUNNING) {
+      count ++;
+    }
+  }
+  return count;
+}
+
+// convert number of processes (int) to char*
+void getNumProcessStr(char* numproc_str) {
+  int numproc = (int)getRunningProcs();
+//  char numproc_str[2];
+  memset(numproc_str, 0, sizeof(numproc_str));
+  if (numproc < 10)
+  {
+    numproc_str[0] = numproc + 48;
+  }
+  else if(numproc < 100)
+  {
+    int units = numproc % 10;
+    int tens = numproc/10 % 10;
+    numproc_str[1] = units + 48;
+    numproc_str[0] = tens + 48;
   }
 }

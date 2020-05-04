@@ -1,3 +1,4 @@
+
 //
 // File-system system calls.
 // Mostly argument checking, since we don't trust
@@ -294,6 +295,9 @@ sys_open(void)
 
   if((n = argstr(0, path, MAXPATH)) < 0 || argint(1, &omode) < 0)
     return -1;
+
+  // call debug statement for open
+  printdebug(3);
 
   begin_op();
 

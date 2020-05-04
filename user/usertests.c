@@ -1494,6 +1494,10 @@ dirfile(char *s)
     printf("%s: link to dirfile/xx succeeded!\n", s);
     exit(1);
   }
+  if(link("samplefile", "dirfile/xx") == 0){
+    printf("%s: link to dirfile/xx succeeded!\n", s);
+    exit(1);
+  }
   if(unlink("dirfile") != 0){
     printf("%s: unlink dirfile failed!\n", s);
     exit(1);

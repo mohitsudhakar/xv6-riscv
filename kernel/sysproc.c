@@ -95,3 +95,37 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+uint64
+sys_mohit(void)
+{
+  int MAXLEN = 1024;
+  char str[MAXLEN];
+  int hook;
+
+  // get arguments from syscall
+  if(argstr(0, str, MAXLEN) < 0) {
+    printf("argstr failed\n");
+  }
+  if(argint(1, &hook) < 0) {
+    printf("argint failed\n");
+  }
+
+  switch(hook) {
+    case 1:
+      strncpy(DEBUG_start, str, 1024);
+      break;
+    case 2:
+      strncpy(DEBUG_exit, str, 1024);
+      break;
+    case 3:
+      strncpy(DEBUG_open, str, 1024);
+      break;
+    default:
+      printf("Error: Wrong hook (1/2/3)\n");
+      exit(0);
+  }
+
+  return 0;
+}
